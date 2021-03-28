@@ -325,6 +325,11 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
   if (Previous.is(tok::l_square) && Previous.is(TT_ObjCMethodExpr))
     return false;
 
+  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreakWithDanglingBracket) {
+    if (Current.is(tok::r_paren) && !State.Stack.back().BreakBeforeClosingBracket)
+      return false;
+  }
+
   return !State.Stack.back().NoLineBreak;
 }
 
@@ -340,6 +345,8 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
     return true;
   if (State.Stack.back().BreakBeforeClosingBrace &&
       Current.closesBlockOrBlockTypeList(Style))
+    return true;
+  if(State.Stack.back().BreakBeforeClosingBracket && Current.isOneOf(tok::r_paren, tok::r_square))
     return true;
   if (Previous.is(tok::semi) && State.LineContainsContinuedForLoopSection)
     return true;
@@ -424,7 +431,9 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
       // FIXME: We should find a more generic solution to this problem.
       !(State.Column <= NewLineColumn &&
         Style.Language == FormatStyle::LK_JavaScript) &&
-      !(Previous.closesScopeAfterBlock() && State.Column <= NewLineColumn))
+      !(Previous.closesScopeAfterBlock() && State.Column <= NewLineColumn) &&
+      !(Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreakWithDanglingBracket &&
+        State.Column <= NewLineColumn))
     return true;
 
   // If the template declaration spans multiple lines, force wrap before the
@@ -642,11 +651,15 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
   // In "AlwaysBreak" mode, enforce wrapping directly after the parenthesis by
   // disallowing any further line breaks if there is no line break after the
   // opening parenthesis. Don't break if it doesn't conserve columns.
-  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak &&
+  if ((Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak ||
+       Style.AlignAfterOpenBracket ==
+           FormatStyle::BAS_AlwaysBreakWithDanglingBracket) &&
       (Previous.isOneOf(tok::l_paren, TT_TemplateOpener, tok::l_square) ||
        (Previous.is(tok::l_brace) && Previous.isNot(BK_Block) &&
         Style.Cpp11BracedListStyle)) &&
-      State.Column > getNewLineColumn(State) &&
+      (State.Column > getNewLineColumn(State) ||
+       Style.AlignAfterOpenBracket ==
+           FormatStyle::BAS_AlwaysBreakWithDanglingBracket) &&
       (!Previous.Previous || !Previous.Previous->isOneOf(
                                  tok::kw_for, tok::kw_while, tok::kw_switch)) &&
       // Don't do this for simple (no expressions) one-argument function calls
@@ -944,6 +957,10 @@ unsigned ContinuationIndenter::addTokenOnNewLine(LineState &State,
        opensProtoMessageField(*PreviousNonComment, Style)))
     State.Stack.back().BreakBeforeClosingBrace = true;
 
+  if (PreviousNonComment && PreviousNonComment->is(tok::l_paren))
+    State.Stack.back().BreakBeforeClosingBracket =
+      (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreakWithDanglingBracket);
+
   if (State.Stack.back().AvoidBinPacking) {
     // If we are breaking after '(', '{', '<', or this is the break after a ':'
     // to start a member initializater list in a constructor, this should not
@@ -1038,6 +1055,11 @@ unsigned ContinuationIndenter::getNewLineColumn(const LineState &State) {
       (!Current.Next ||
        Current.Next->isOneOf(tok::semi, tok::kw_const, tok::l_brace)))
     return State.Stack[State.Stack.size() - 2].LastSpace;
+  if (Style.AlignAfterOpenBracket ==
+          FormatStyle::BAS_AlwaysBreakWithDanglingBracket &&
+      Current.is(tok::r_paren) && State.Stack.size() > 1) {
+    return State.Stack[State.Stack.size() - 2].LastSpace;
+  }
   if (NextNonComment->is(TT_TemplateString) && NextNonComment->closesScope())
     return State.Stack[State.Stack.size() - 2].LastSpace;
   if (Current.is(tok::identifier) && Current.Next &&

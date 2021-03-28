@@ -211,7 +211,7 @@ struct ParenState {
         HasMultipleNestedBlocks(false), NestedBlockInlined(false),
         IsInsideObjCArrayLiteral(false), IsCSharpGenericTypeConstraint(false),
         IsChainedConditional(false), IsWrappedConditional(false),
-        UnindentOperator(false) {}
+        UnindentOperator(false), BreakBeforeClosingBracket(false) {}
 
   /// \brief The token opening this parenthesis level, or nullptr if this level
   /// is opened by fake parenthesis.
@@ -349,6 +349,8 @@ struct ParenState {
   /// operator.
   bool UnindentOperator : 1;
 
+  bool BreakBeforeClosingBracket : 1;
+
   bool operator<(const ParenState &Other) const {
     if (Indent != Other.Indent)
       return Indent < Other.Indent;
@@ -396,6 +398,8 @@ struct ParenState {
       return IsWrappedConditional;
     if (UnindentOperator != Other.UnindentOperator)
       return UnindentOperator;
+    if (BreakBeforeClosingBracket != Other.BreakBeforeClosingBracket)
+      return BreakBeforeClosingBracket;
     return false;
   }
 };

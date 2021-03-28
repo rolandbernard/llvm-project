@@ -4213,7 +4213,10 @@ bool TokenAnnotator::canBreakBefore(const AnnotatedLine &Line,
   if (Right.is(TT_ImplicitStringLiteral))
     return false;
 
-  if (Right.is(tok::r_paren) || Right.is(TT_TemplateCloser))
+  if (Right.is(tok::r_paren)) {
+    return Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreakWithDanglingBracket;
+  }
+  if (Right.is(TT_TemplateCloser))
     return false;
   if (Right.is(tok::r_square) && Right.MatchingParen &&
       Right.MatchingParen->is(TT_LambdaLSquare))

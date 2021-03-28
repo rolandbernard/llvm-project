@@ -87,6 +87,14 @@ struct FormatStyle {
     ///       argument1, argument2);
     /// \endcode
     BAS_AlwaysBreak,
+    /// Always break after an open bracket, if the parameters don't fit
+    /// on a single line and break before the closing bracket, e.g.:
+    /// \code
+    ///   someLongFunction(
+    ///       argument1, argument2
+    ///   );
+    /// \endcode
+    BAS_AlwaysBreakWithDanglingBracket,
   };
 
   /// If ``true``, horizontally aligns arguments after an open bracket.
