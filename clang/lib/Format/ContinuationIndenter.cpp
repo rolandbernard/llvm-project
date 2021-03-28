@@ -651,17 +651,15 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
   // In "AlwaysBreak" mode, enforce wrapping directly after the parenthesis by
   // disallowing any further line breaks if there is no line break after the
   // opening parenthesis. Don't break if it doesn't conserve columns.
-  if ((Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak ||
-       Style.AlignAfterOpenBracket ==
-           FormatStyle::BAS_AlwaysBreakWithDanglingBracket) &&
-      (Previous.isOneOf(tok::l_paren, TT_TemplateOpener, tok::l_square) ||
+  if ((Previous.isOneOf(tok::l_paren, TT_TemplateOpener, tok::l_square) ||
        (Previous.is(tok::l_brace) && Previous.isNot(BK_Block) &&
         Style.Cpp11BracedListStyle)) &&
-      (State.Column > getNewLineColumn(State) ||
-       Style.AlignAfterOpenBracket ==
-           FormatStyle::BAS_AlwaysBreakWithDanglingBracket) &&
-      (!Previous.Previous || !Previous.Previous->isOneOf(
-                                 tok::kw_for, tok::kw_while, tok::kw_switch)) &&
+      (Style.AlignAfterOpenBracket ==
+           FormatStyle::BAS_AlwaysBreakWithDanglingBracket ||
+        (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak &&
+          (State.Column > getNewLineColumn(State)) &&
+          (!Previous.Previous || !Previous.Previous->isOneOf(
+            tok::kw_for, tok::kw_while, tok::kw_switch)))) &&
       // Don't do this for simple (no expressions) one-argument function calls
       // as that feels like needlessly wasting whitespace, e.g.:
       //
