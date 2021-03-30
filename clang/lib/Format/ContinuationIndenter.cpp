@@ -280,6 +280,11 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
   const FormatToken &Current = *State.NextToken;
   const FormatToken &Previous = *Current.Previous;
   assert(&Previous == Current.Previous);
+
+  if (Style.AlignAfterOpenBracket
+        == FormatStyle::BAS_AlwaysBreakWithDanglingBracket &&
+      Previous.is(tok::l_paren))
+    return true;
   if (!Current.CanBreakBefore && !(State.Stack.back().BreakBeforeClosingBrace &&
                                    Current.closesBlockOrBlockTypeList(Style)))
     return false;
@@ -719,7 +724,10 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
     if ((!BreakBeforeOperator &&
          !(HasTwoOperands &&
            Style.AlignOperands != FormatStyle::OAS_DontAlign)) ||
-        (!State.Stack.back().LastOperatorWrapped && BreakBeforeOperator))
+        (!State.Stack.back().LastOperatorWrapped && BreakBeforeOperator &&
+          (Style.AlignAfterOpenBracket
+            != FormatStyle::BAS_AlwaysBreakWithDanglingBracket ||
+            State.Column > getNewLineColumn(State))))
       State.Stack.back().NoLineBreakInOperand = true;
   }
 
