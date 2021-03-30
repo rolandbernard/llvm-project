@@ -325,11 +325,6 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
   if (Previous.is(tok::l_square) && Previous.is(TT_ObjCMethodExpr))
     return false;
 
-  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreakWithDanglingBracket) {
-    if (Current.is(tok::r_paren) && !State.Stack.back().BreakBeforeClosingBracket)
-      return false;
-  }
-
   return !State.Stack.back().NoLineBreak;
 }
 
@@ -346,7 +341,7 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
   if (State.Stack.back().BreakBeforeClosingBrace &&
       Current.closesBlockOrBlockTypeList(Style))
     return true;
-  if(State.Stack.back().BreakBeforeClosingBracket && Current.isOneOf(tok::r_paren, tok::r_square))
+  if(State.Stack.back().BreakBeforeClosingBracket && Current.is(tok::r_paren))
     return true;
   if (Previous.is(tok::semi) && State.LineContainsContinuedForLoopSection)
     return true;
@@ -1055,9 +1050,8 @@ unsigned ContinuationIndenter::getNewLineColumn(const LineState &State) {
     return State.Stack[State.Stack.size() - 2].LastSpace;
   if (Style.AlignAfterOpenBracket ==
           FormatStyle::BAS_AlwaysBreakWithDanglingBracket &&
-      Current.is(tok::r_paren) && State.Stack.size() > 1) {
+      Current.is(tok::r_paren) && State.Stack.size() > 1)
     return State.Stack[State.Stack.size() - 2].LastSpace;
-  }
   if (NextNonComment->is(TT_TemplateString) && NextNonComment->closesScope())
     return State.Stack[State.Stack.size() - 2].LastSpace;
   if (Current.is(tok::identifier) && Current.Next &&
