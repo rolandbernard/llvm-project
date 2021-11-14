@@ -536,7 +536,7 @@ public:
       // Create one token for each line in the inactive range, so it works
       // with line-based diffing.
       assert(R.start.line <= R.end.line);
-      for (int Line = R.start.line; Line <= R.end.line; ++Line) {
+      for (int Line = R.start.line + 1; Line < R.end.line; ++Line) {
         // Copy tokens before the inactive line
         for (; It != NonConflicting.end() && It->R.start.line < Line; ++It)
           WithInactiveLines.push_back(std::move(*It));
@@ -555,8 +555,6 @@ public:
         // Skip any other tokens on the inactive line. e.g.
         // `#ifndef Foo` is considered as part of an inactive region when Foo is
         // defined, and there is a Foo macro token.
-        // FIXME: we should reduce the scope of the inactive region to not
-        // include the directive itself.
         while (It != NonConflicting.end() && It->R.start.line == Line)
           ++It;
       }
