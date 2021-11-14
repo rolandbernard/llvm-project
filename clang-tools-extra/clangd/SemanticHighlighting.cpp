@@ -412,7 +412,7 @@ public:
       // Create one token for each line in the skipped range, so it works
       // with line-based diffing.
       assert(R.start.line <= R.end.line);
-      for (int Line = R.start.line; Line <= R.end.line; ++Line) {
+      for (int Line = R.start.line + 1; Line < R.end.line; ++Line) {
         // If the end of the inactive range is at the beginning
         // of a line, that line is not inactive.
         if (Line == R.end.line && R.end.character == 0)
@@ -442,8 +442,6 @@ public:
         // Skip any other tokens on the inactive line. e.g.
         // `#ifndef Foo` is considered as part of an inactive region when Foo is
         // defined, and there is a Foo macro token.
-        // FIXME: we should reduce the scope of the inactive region to not
-        // include the directive itself.
         while (It != NonConflicting.end() && It->R.start.line == Line)
           ++It;
       }
