@@ -281,6 +281,9 @@ bool ContinuationIndenter::canBreak(const LineState &State) {
   const FormatToken &Previous = *Current.Previous;
   const auto &CurrentState = State.Stack.back();
   assert(&Previous == Current.Previous);
+  if (Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent &&
+      Previous.is(tok::l_paren))
+    return true;
   if (!Current.CanBreakBefore && !(CurrentState.BreakBeforeClosingBrace &&
                                    Current.closesBlockOrBlockTypeList(Style))) {
     return false;
@@ -439,7 +442,9 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
       //   }.bind(...));
       // FIXME: We should find a more generic solution to this problem.
       !(State.Column <= NewLineColumn && Style.isJavaScript()) &&
-      !(Previous.closesScopeAfterBlock() && State.Column <= NewLineColumn)) {
+      !(Previous.closesScopeAfterBlock() && State.Column <= NewLineColumn) &&
+      !(Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent &&
+        State.Column <= NewLineColumn)) {
     return true;
   }
 
@@ -701,14 +706,14 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
   // parenthesis by disallowing any further line breaks if there is no line
   // break after the opening parenthesis. Don't break if it doesn't conserve
   // columns.
-  if ((Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak ||
-       Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent) &&
-      (Previous.isOneOf(tok::l_paren, TT_TemplateOpener, tok::l_square) ||
+  if ((Previous.isOneOf(tok::l_paren, TT_TemplateOpener, tok::l_square) ||
        (Previous.is(tok::l_brace) && Previous.isNot(BK_Block) &&
         Style.Cpp11BracedListStyle)) &&
-      State.Column > getNewLineColumn(State) &&
-      (!Previous.Previous || !Previous.Previous->isOneOf(
-                                 tok::kw_for, tok::kw_while, tok::kw_switch)) &&
+      (Style.AlignAfterOpenBracket == FormatStyle::BAS_BlockIndent ||
+        (Style.AlignAfterOpenBracket == FormatStyle::BAS_AlwaysBreak &&
+          (State.Column > getNewLineColumn(State)) &&
+          (!Previous.Previous || !Previous.Previous->isOneOf(
+            tok::kw_for, tok::kw_while, tok::kw_switch)))) &&
       // Don't do this for simple (no expressions) one-argument function calls
       // as that feels like needlessly wasting whitespace, e.g.:
       //
@@ -776,7 +781,10 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
     if ((!BreakBeforeOperator &&
          !(HasTwoOperands &&
            Style.AlignOperands != FormatStyle::OAS_DontAlign)) ||
-        (!CurrentState.LastOperatorWrapped && BreakBeforeOperator)) {
+        (!CurrentState.LastOperatorWrapped && BreakBeforeOperator &&
+          (Style.AlignAfterOpenBracket
+            != FormatStyle::BAS_BlockIndent ||
+            State.Column > getNewLineColumn(State)))) {
       CurrentState.NoLineBreakInOperand = true;
     }
   }
